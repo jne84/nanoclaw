@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker info:*)",
+      "Bash(tasklist:*)",
+      "Bash(docker version:*)",
+      "Bash(wsl:*)",
+      "Bash(taskkill:*)",
+      "Read(//c/Users/josef.neman/nanoclaw/$APPDATA/Docker/log/host/**)",
+      "Read(//c/Users/josef.neman/nanoclaw/$LOCALAPPDATA/Docker/log/host/**)"
+    ]
+  }
+}
