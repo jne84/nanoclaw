@@ -7,7 +7,18 @@
       "Bash(wsl:*)",
       "Bash(taskkill:*)",
       "Read(//c/Users/josef.neman/nanoclaw/$APPDATA/Docker/log/host/**)",
-      "Read(//c/Users/josef.neman/nanoclaw/$LOCALAPPDATA/Docker/log/host/**)"
+      "Read(//c/Users/josef.neman/nanoclaw/$LOCALAPPDATA/Docker/log/host/**)",
+      "Bash(cd:*)",
+      "Bash(claude setup-token:*)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"C:\\\\\\\\Program Files\\\\\\\\Git\\\\\\\\bin\\\\\\\\bash.exe\" claude setup-token 2>&1)",
+      "Read(//c/Program Files/Git/bin/**)",
+      "Read(//c/Users/josef.neman/nanoclaw/$LOCALAPPDATA/Programs/Git/bin/**)",
+      "Read(//c/Users/josef.neman/AppData/Local/Programs/Git/bin/**)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"C:\\\\\\\\Users\\\\\\\\josef.neman\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Programs\\\\\\\\Git\\\\\\\\bin\\\\\\\\bash.exe\" claude setup-token 2>&1)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
