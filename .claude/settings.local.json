@@ -18,7 +18,18 @@
       "Bash(gh repo:*)",
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(netstat:*)",
+      "Bash(ssh:*)",
+      "Bash(tar czf:*)",
+      "Read(//tmp/**)",
+      "Bash(scp:*)",
+      "Bash(wmic process:*)",
+      "Bash(npm run:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -44,17 +44,50 @@ function detectProxyBindHost(): string {
 export function hostGatewayArgs(): string[] {
   // On Linux, host.docker.internal isn't built-in — add it explicitly
   if (os.platform() === 'linux') {
-    return ['--add-host=host.docker.internal:host-gateway'];
+    const args = ['--add-host=host.docker.internal:host-gateway'];
+    // Rootless podman remaps UIDs; --userns=keep-id preserves host UID inside container.
+    // Disable SELinux labeling to avoid mount propagation issues with :z flag.
+    if (isPodman()) {
+      args.push('--userns=keep-id');
+      args.push('--security-opt', 'label=disable');
+    }
+    return args;
   }
   return [];
 }
+
+/** Detect if the container runtime is actually podman (possibly aliased as docker). */
+function isPodman(): boolean {
+  try {
+    const output = execSync(`${CONTAINER_RUNTIME_BIN} --version`, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    return output.toLowerCase().includes('podman');
+  } catch {
+    return false;
+  }
+}
+
+/** SELinux relabel suffix — disabled when using --security-opt label=disable. */
+const SELINUX_SUFFIX = '';
 
 /** Returns CLI args for a readonly bind mount. */
 export function readonlyMountArgs(
   hostPath: string,
   containerPath: string,
 ): string[] {
-  return ['-v', `${hostPath}:${containerPath}:ro`];
+  const suffix = hostPath === '/dev/null' ? '' : SELINUX_SUFFIX;
+  return ['-v', `${hostPath}:${containerPath}:ro${suffix}`];
+}
+
+/** Returns CLI args for a writable bind mount. */
+export function writableMountArgs(
+  hostPath: string,
+  containerPath: string,
+): string[] {
+  return ['-v', `${hostPath}:${containerPath}${SELINUX_SUFFIX}`];
 }
 
 /** Returns the shell command to stop a container by name. */

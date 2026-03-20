@@ -489,7 +489,14 @@ async function runQuery(
     if (message.type === 'result') {
       resultCount++;
       const textResult = 'result' in message ? (message as { result?: string }).result : null;
+      const errorMsg = 'error' in message ? (message as { error?: string }).error : null;
       log(`Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`);
+
+      // Throw on unrecoverable session errors so the caller can retry fresh
+      if (message.subtype === 'error_during_execution' && errorMsg?.includes('No conversation found')) {
+        throw new Error(`Claude Code returned an error result: ${errorMsg}`);
+      }
+
       writeOutput({
         status: 'success',
         result: textResult || null,
@@ -550,7 +557,21 @@ async function main(): Promise<void> {
     while (true) {
       log(`Starting query (session: ${sessionId || 'new'}, resumeAt: ${resumeAt || 'latest'})...`);
 
-      const queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
+      let queryResult;
+      try {
+        queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
+      } catch (resumeErr) {
+        // If resume fails (e.g. conversation not found), retry as a fresh session
+        const msg = resumeErr instanceof Error ? resumeErr.message : String(resumeErr);
+        if (sessionId && msg.includes('No conversation found')) {
+          log(`Session ${sessionId} not found, starting fresh session`);
+          sessionId = undefined;
+          resumeAt = undefined;
+          queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
+        } else {
+          throw resumeErr;
+        }
+      }
       if (queryResult.newSessionId) {
         sessionId = queryResult.newSessionId;
       }
