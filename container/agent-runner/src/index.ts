@@ -68,7 +68,28 @@ interface SDKUserMessage {
 
 const IPC_INPUT_DIR = '/workspace/ipc/input';
 const IPC_INPUT_CLOSE_SENTINEL = path.join(IPC_INPUT_DIR, '_close');
+const IPC_OUTPUT_DIR = '/workspace/ipc/output';
 const IPC_POLL_MS = 500;
+const STREAM_EVENTS = process.env.NANOCLAW_STREAM_EVENTS === '1';
+
+let streamSeq = 0;
+
+/** Write a stream event to the IPC output directory for real-time UI forwarding. */
+function writeStreamEvent(type: string, data: Record<string, unknown>): void {
+  if (!STREAM_EVENTS) return;
+  try {
+    fs.mkdirSync(IPC_OUTPUT_DIR, { recursive: true });
+    streamSeq++;
+    const seq = String(streamSeq).padStart(6, '0');
+    const filename = `${seq}-${Date.now()}.json`;
+    const filepath = path.join(IPC_OUTPUT_DIR, filename);
+    const event = { seq: streamSeq, timestamp: Date.now(), type, data };
+    fs.writeFileSync(filepath, JSON.stringify(event));
+    fs.chmodSync(filepath, 0o666);
+  } catch (err) {
+    log(`Failed to write stream event: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 /**
  * Push-based async iterable for streaming user messages to the SDK.
@@ -484,11 +505,41 @@ async function runQuery(
     if (message.type === 'system' && message.subtype === 'init') {
       newSessionId = message.session_id;
       log(`Session initialized: ${newSessionId}`);
+      writeStreamEvent('init', { sessionId: newSessionId });
     }
 
     if (message.type === 'system' && (message as { subtype?: string }).subtype === 'task_notification') {
       const tn = message as { task_id: string; status: string; summary: string };
       log(`Task notification: task=${tn.task_id} status=${tn.status} summary=${tn.summary}`);
+    }
+
+    // Stream assistant content blocks (text, tool_use, tool_result, thinking)
+    if (message.type === 'assistant' && 'content' in message) {
+      const content = (message as { content?: Array<{ type: string; text?: string; name?: string; input?: unknown; content?: unknown; id?: string }> }).content;
+      if (content) {
+        for (const block of content) {
+          if (block.type === 'text' && block.text) {
+            writeStreamEvent('assistant_text', { text: block.text });
+          } else if (block.type === 'tool_use') {
+            writeStreamEvent('tool_use', { toolName: block.name, toolId: block.id, input: block.input });
+          } else if (block.type === 'tool_result') {
+            const resultContent = block.content;
+            const truncated = typeof resultContent === 'string' && resultContent.length > 10000;
+            writeStreamEvent('tool_result', {
+              toolId: block.id,
+              content: truncated ? (resultContent as string).slice(0, 10000) : resultContent,
+              truncated,
+            });
+          } else if (block.type === 'thinking' && block.text) {
+            writeStreamEvent('thinking', { text: block.text });
+          }
+        }
+      }
+    }
+
+    // Stream rate limit events
+    if (message.type === 'rate_limit_event' || (message as { type: string }).type === 'rate_limit_event') {
+      writeStreamEvent('rate_limit', { message: 'Rate limited, waiting...' });
     }
 
     if (message.type === 'result') {
@@ -501,6 +552,8 @@ async function runQuery(
       if (message.subtype === 'error_during_execution' && errorMsg?.includes('No conversation found')) {
         throw new Error(`Claude Code returned an error result: ${errorMsg}`);
       }
+
+      writeStreamEvent('result', { text: textResult, subtype: message.subtype });
 
       writeOutput({
         status: 'success',

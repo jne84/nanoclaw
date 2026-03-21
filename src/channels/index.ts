@@ -10,5 +10,8 @@ import './gmail.js';
 
 // telegram
 
+// webchat
+import './webchat.js';
+
 // whatsapp
 import './whatsapp.js';

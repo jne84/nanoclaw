@@ -6,7 +6,12 @@ import { readEnvFile } from './env.js';
 // Read config values from .env (falls back to process.env).
 // Secrets (API keys, tokens) are NOT read here — they are loaded only
 // by the credential proxy (credential-proxy.ts), never exposed to containers.
-const envConfig = readEnvFile(['ASSISTANT_NAME', 'ASSISTANT_HAS_OWN_NUMBER']);
+const envConfig = readEnvFile([
+  'ASSISTANT_NAME',
+  'ASSISTANT_HAS_OWN_NUMBER',
+  'WEBCHAT_PORT',
+  'WEBCHAT_TOKEN',
+]);
 
 export const ASSISTANT_NAME =
   process.env.ASSISTANT_NAME || envConfig.ASSISTANT_NAME || 'Andy';
@@ -71,3 +76,11 @@ export const TRIGGER_PATTERN = new RegExp(
 // Uses system timezone by default
 export const TIMEZONE =
   process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Webchat UI configuration
+export const WEBCHAT_PORT = parseInt(
+  process.env.WEBCHAT_PORT || envConfig.WEBCHAT_PORT || '3100',
+  10,
+);
+export const WEBCHAT_TOKEN =
+  process.env.WEBCHAT_TOKEN || envConfig.WEBCHAT_TOKEN || '';

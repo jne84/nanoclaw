@@ -44,7 +44,7 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   imageAttachments?: Array<{ relativePath: string; mediaType: string }>;
-
+  streamEvents?: boolean;
 }
 
 export interface ContainerOutput {
@@ -184,6 +184,18 @@ function buildVolumeMounts(
   fs.mkdirSync(path.join(groupIpcDir, 'messages'), { recursive: true });
   fs.mkdirSync(path.join(groupIpcDir, 'tasks'), { recursive: true });
   fs.mkdirSync(path.join(groupIpcDir, 'input'), { recursive: true });
+  const outputDir = path.join(groupIpcDir, 'output');
+  fs.mkdirSync(outputDir, { recursive: true });
+  try {
+    fs.chmodSync(outputDir, 0o777);
+  } catch {
+    /* best effort */
+  }
+  try {
+    fs.chmodSync(path.join(groupIpcDir, 'input'), 0o777);
+  } catch {
+    /* best effort */
+  }
   mounts.push({
     hostPath: groupIpcDir,
     containerPath: '/workspace/ipc',
@@ -294,6 +306,16 @@ export async function runContainerAgent(
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
   const containerName = `nanoclaw-${safeName}-${Date.now()}`;
   const containerArgs = buildContainerArgs(mounts, containerName);
+
+  // Enable real-time SDK event streaming for webchat containers
+  if (input.streamEvents) {
+    containerArgs.splice(
+      containerArgs.indexOf(CONTAINER_IMAGE),
+      0,
+      '-e',
+      'NANOCLAW_STREAM_EVENTS=1',
+    );
+  }
 
   logger.debug(
     {
