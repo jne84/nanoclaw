@@ -73,12 +73,33 @@ export class WebChatChannel implements Channel {
         }
         res.writeHead(200, {
           'Content-Type': contentTypes[ext] || 'application/octet-stream',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         });
         res.end(data);
       });
     });
 
-    this.wss = new WebSocketServer({ server: this.server });
+    this.wss = new WebSocketServer({
+      server: this.server,
+      // Ping every 30s to keep connections alive behind proxies/NATs
+      perMessageDeflate: false,
+    });
+
+    // Heartbeat: ping clients every 25s, kill if no pong within 10s
+    const heartbeatInterval = setInterval(() => {
+      for (const client of this.clients) {
+        if ((client as any).__alive === false) {
+          client.terminate();
+          this.clients.delete(client);
+          continue;
+        }
+        (client as any).__alive = false;
+        client.ping();
+      }
+    }, 25000);
+    this.wss.on('close', () => clearInterval(heartbeatInterval));
 
     this.wss.on('connection', (ws: AuthenticatedWebSocket) => {
       logger.info('WebChat: new connection, awaiting auth');
@@ -90,6 +111,8 @@ export class WebChatChannel implements Channel {
           if (msg.type === 'auth' && msg.token === WEBCHAT_TOKEN) {
             ws.authenticated = true;
             ws.groupFolder = WEBCHAT_GROUP_FOLDER;
+            (ws as any).__alive = true;
+            ws.on('pong', () => { (ws as any).__alive = true; });
             this.clients.add(ws);
             ws.send(JSON.stringify({ type: 'connected' }));
             logger.info('WebChat: client authenticated');
@@ -175,6 +198,13 @@ export class WebChatChannel implements Channel {
 
   async sendMessage(jid: string, text: string): Promise<void> {
     if (jid !== WEBCHAT_JID) return;
+    // Stream events already deliver content to the browser in real time.
+    // Skip the batch message when clients are connected — they get the
+    // streaming version instead. This avoids duplicate/out-of-order text.
+    if (this.clients.size > 0) {
+      logger.debug('WebChat: skipping batch message (stream events active)');
+      return;
+    }
     this.broadcast({ type: 'message', text });
   }
 
@@ -229,14 +259,20 @@ export class WebChatChannel implements Channel {
           .filter((f) => f.endsWith('.json'))
           .sort();
 
+        if (files.length > 0) {
+          logger.info({ count: files.length, clients: this.clients.size }, 'Stream poller: found events');
+        }
+
         for (const file of files) {
           const filePath = path.join(outputDir, file);
           try {
             const content = fs.readFileSync(filePath, 'utf-8');
             fs.unlinkSync(filePath);
             const event = JSON.parse(content);
+            logger.debug({ eventType: event.type }, 'Broadcasting stream event');
             this.broadcast({ type: 'stream', event });
-          } catch {
+          } catch (err) {
+            logger.warn({ file, err }, 'Stream poller: failed to process event');
             // File may have been consumed by another reader or is corrupt
             try {
               fs.unlinkSync(filePath);

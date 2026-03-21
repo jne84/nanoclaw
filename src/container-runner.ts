@@ -28,6 +28,7 @@ import {
   writableMountArgs,
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
+import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
@@ -263,6 +264,16 @@ function buildContainerArgs(
     args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
   } else {
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Pass through service credentials for MCP servers (Jira, etc.)
+  const mcpEnvKeys = ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN'];
+  const mcpEnv = readEnvFile(mcpEnvKeys);
+  for (const key of mcpEnvKeys) {
+    const value = process.env[key] || mcpEnv[key];
+    if (value) {
+      args.push('-e', `${key}=${value}`);
+    }
   }
 
   // Runtime-specific args for host gateway resolution

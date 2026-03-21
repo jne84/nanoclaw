@@ -24,11 +24,16 @@ RUN apt-get update && apt-get install -y \
     libxshmfence1 \
     curl \
     git \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Install mcp-atlassian (Jira + Confluence MCP server)
+RUN pip3 install --break-system-packages mcp-atlassian
 
 # Install agent-browser, playwright-cli, and claude-code globally
 RUN npm install -g agent-browser @playwright/cli @anthropic-ai/claude-code

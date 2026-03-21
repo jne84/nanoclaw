@@ -415,7 +415,13 @@ async function runQuery(
     const messages = drainIpcInput();
     for (const text of messages) {
       log(`Piping IPC message into active query (${text.length} chars)`);
-      stream.push(text);
+      try {
+        stream.push(text);
+      } catch (err) {
+        log(`Failed to pipe IPC message: ${err instanceof Error ? err.message : String(err)}`);
+        ipcPolling = false;
+        return;
+      }
     }
     setTimeout(pollIpcDuringQuery, IPC_POLL_MS);
   };
@@ -469,6 +475,8 @@ async function runQuery(
         'NotebookEdit',
         'mcp__nanoclaw__*',
         'mcp__gmail__*',
+        'mcp__calendar__*',
+        'mcp__atlassian__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -487,6 +495,19 @@ async function runQuery(
         gmail: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+        },
+        calendar: {
+          command: 'npx',
+          args: ['-y', '@gongrzhe/server-calendar-autoauth-mcp'],
+        },
+        atlassian: {
+          command: 'mcp-atlassian',
+          args: [],
+          env: {
+            JIRA_URL: process.env.JIRA_URL || '',
+            JIRA_USERNAME: process.env.JIRA_USERNAME || '',
+            JIRA_API_TOKEN: process.env.JIRA_API_TOKEN || '',
+          },
         },
       },
       hooks: {
@@ -513,10 +534,24 @@ async function runQuery(
       log(`Task notification: task=${tn.task_id} status=${tn.status} summary=${tn.summary}`);
     }
 
-    // Stream assistant content blocks (text, tool_use, tool_result, thinking)
-    if (message.type === 'assistant' && 'content' in message) {
-      const content = (message as { content?: Array<{ type: string; text?: string; name?: string; input?: unknown; content?: unknown; id?: string }> }).content;
-      if (content) {
+    // Stream all assistant messages — dump raw structure to understand SDK format,
+    // then extract content blocks for the UI.
+    if (message.type === 'assistant') {
+      const msg = message as Record<string, unknown>;
+
+      // Extract content blocks — try multiple paths since SDK structure varies
+      let content: Array<{ type: string; text?: string; name?: string; input?: unknown; content?: unknown; id?: string }> | undefined;
+
+      if (Array.isArray(msg.content)) {
+        content = msg.content as typeof content;
+      } else if (msg.message && typeof msg.message === 'object') {
+        const inner = msg.message as Record<string, unknown>;
+        if (Array.isArray(inner.content)) {
+          content = inner.content as typeof content;
+        }
+      }
+
+      if (content && content.length > 0) {
         for (const block of content) {
           if (block.type === 'text' && block.text) {
             writeStreamEvent('assistant_text', { text: block.text });
