@@ -267,7 +267,11 @@ function buildContainerArgs(
   }
 
   // Pass through service credentials for MCP servers (Jira, etc.)
-  const mcpEnvKeys = ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN', 'LINKEDIN_SESSION_COOKIE'];
+  const mcpEnvKeys = [
+    'JIRA_URL',
+    'JIRA_USERNAME',
+    'JIRA_API_TOKEN',
+  ];
   const mcpEnv = readEnvFile(mcpEnvKeys);
   for (const key of mcpEnvKeys) {
     const value = process.env[key] || mcpEnv[key];
