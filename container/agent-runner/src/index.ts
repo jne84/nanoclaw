@@ -477,6 +477,7 @@ async function runQuery(
         'mcp__gmail__*',
         'mcp__calendar__*',
         'mcp__atlassian__*',
+        'mcp__linkedin__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -507,6 +508,13 @@ async function runQuery(
             JIRA_URL: process.env.JIRA_URL || '',
             JIRA_USERNAME: process.env.JIRA_USERNAME || '',
             JIRA_API_TOKEN: process.env.JIRA_API_TOKEN || '',
+          },
+        },
+        linkedin: {
+          command: 'python3',
+          args: ['/opt/linkedin-mcp/server.py'],
+          env: {
+            LINKEDIN_SESSION_COOKIE: process.env.LINKEDIN_SESSION_COOKIE || '',
           },
         },
       },

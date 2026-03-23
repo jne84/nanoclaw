@@ -35,6 +35,11 @@ ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 # Install mcp-atlassian (Jira + Confluence MCP server)
 RUN pip3 install --break-system-packages mcp-atlassian
 
+# Install LinkedIn MCP server
+RUN pip3 install --break-system-packages mcp httpx \
+    && mkdir -p /opt/linkedin-mcp
+COPY linkedin-server.py /opt/linkedin-mcp/server.py
+
 # Install agent-browser, playwright-cli, and claude-code globally
 RUN npm install -g agent-browser @playwright/cli @anthropic-ai/claude-code
 

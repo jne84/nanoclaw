@@ -44,7 +44,8 @@ export class WebChatChannel implements Channel {
 
     this.server = http.createServer((req, res) => {
       // Serve static files from web/
-      const url = req.url === '/' ? '/index.html' : req.url || '/index.html';
+      const rawUrl = (req.url || '/').split('?')[0]; // strip query params
+      const url = rawUrl === '/' ? '/index.html' : rawUrl;
       const filePath = path.join(webDir, url);
 
       // Security: prevent path traversal

@@ -1033,7 +1033,7 @@ html, body {
         break;
 
       case 'rate_limit':
-        addBanner('warn', 'Rate limited — retrying in ' + (ev.data?.retryAfter || 'a moment') + '...');
+        // Hidden — rate limits are handled automatically by the SDK
         break;
 
       case 'error':
