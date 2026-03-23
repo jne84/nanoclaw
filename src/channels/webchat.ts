@@ -74,8 +74,8 @@ export class WebChatChannel implements Channel {
         res.writeHead(200, {
           'Content-Type': contentTypes[ext] || 'application/octet-stream',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          Pragma: 'no-cache',
+          Expires: '0',
         });
         res.end(data);
       });
@@ -112,7 +112,9 @@ export class WebChatChannel implements Channel {
             ws.authenticated = true;
             ws.groupFolder = WEBCHAT_GROUP_FOLDER;
             (ws as any).__alive = true;
-            ws.on('pong', () => { (ws as any).__alive = true; });
+            ws.on('pong', () => {
+              (ws as any).__alive = true;
+            });
             this.clients.add(ws);
             ws.send(JSON.stringify({ type: 'connected' }));
             logger.info('WebChat: client authenticated');
@@ -260,7 +262,10 @@ export class WebChatChannel implements Channel {
           .sort();
 
         if (files.length > 0) {
-          logger.info({ count: files.length, clients: this.clients.size }, 'Stream poller: found events');
+          logger.info(
+            { count: files.length, clients: this.clients.size },
+            'Stream poller: found events',
+          );
         }
 
         for (const file of files) {
@@ -269,10 +274,16 @@ export class WebChatChannel implements Channel {
             const content = fs.readFileSync(filePath, 'utf-8');
             fs.unlinkSync(filePath);
             const event = JSON.parse(content);
-            logger.debug({ eventType: event.type }, 'Broadcasting stream event');
+            logger.debug(
+              { eventType: event.type },
+              'Broadcasting stream event',
+            );
             this.broadcast({ type: 'stream', event });
           } catch (err) {
-            logger.warn({ file, err }, 'Stream poller: failed to process event');
+            logger.warn(
+              { file, err },
+              'Stream poller: failed to process event',
+            );
             // File may have been consumed by another reader or is corrupt
             try {
               fs.unlinkSync(filePath);
