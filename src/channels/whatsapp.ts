@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+import pino from 'pino';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -73,14 +74,15 @@ export class WhatsAppChannel implements Channel {
       );
       return { version: undefined };
     });
+    const baileysLogger = pino({ level: 'silent' });
     this.sock = makeWASocket({
       version,
       auth: {
         creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger),
+        keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
       },
       printQRInTerminal: false,
-      logger,
+      logger: baileysLogger,
       browser: Browsers.macOS('Chrome'),
     });
 
