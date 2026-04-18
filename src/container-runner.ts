@@ -32,7 +32,6 @@ import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
-
 // Sentinel markers for robust output parsing (must match agent-runner)
 const OUTPUT_START_MARKER = '---NANOCLAW_OUTPUT_START---';
 const OUTPUT_END_MARKER = '---NANOCLAW_OUTPUT_END---';
@@ -203,20 +202,16 @@ function buildVolumeMounts(
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC
   const groupIpcDir = resolveGroupIpcPath(group.folder);
-  fs.mkdirSync(path.join(groupIpcDir, 'messages'), { recursive: true });
-  fs.mkdirSync(path.join(groupIpcDir, 'tasks'), { recursive: true });
-  fs.mkdirSync(path.join(groupIpcDir, 'input'), { recursive: true });
-  const outputDir = path.join(groupIpcDir, 'output');
-  fs.mkdirSync(outputDir, { recursive: true });
-  try {
-    fs.chmodSync(outputDir, 0o777);
-  } catch {
-    /* best effort */
-  }
-  try {
-    fs.chmodSync(path.join(groupIpcDir, 'input'), 0o777);
-  } catch {
-    /* best effort */
+  // The container runs as uid 1000 (node) and must be able to write task
+  // requests, messages, and IPC input/output files. chmod 777 on each dir.
+  for (const sub of ['messages', 'tasks', 'input', 'output']) {
+    const dir = path.join(groupIpcDir, sub);
+    fs.mkdirSync(dir, { recursive: true });
+    try {
+      fs.chmodSync(dir, 0o777);
+    } catch {
+      /* best effort */
+    }
   }
   mounts.push({
     hostPath: groupIpcDir,
