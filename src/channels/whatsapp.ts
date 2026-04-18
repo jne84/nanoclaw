@@ -115,8 +115,9 @@ export class WhatsAppChannel implements Channel {
         if (shouldReconnect) {
           this.scheduleReconnect(1);
         } else {
-          logger.info('Logged out. Run /setup to re-authenticate.');
-          process.exit(0);
+          logger.warn(
+            'WhatsApp logged out. Channel disabled — run /setup to re-authenticate. Other channels will keep running.',
+          );
         }
       } else if (connection === 'open') {
         this.connected = true;
