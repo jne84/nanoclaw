@@ -120,6 +120,11 @@ export class WhatsAppChannel implements Channel {
           logger.warn(
             'WhatsApp logged out. Channel disabled — run /setup to re-authenticate. Other channels will keep running.',
           );
+          // Release the outer connect() promise so main() can proceed
+          if (onFirstOpen) {
+            onFirstOpen();
+            onFirstOpen = undefined;
+          }
         }
       } else if (connection === 'open') {
         this.connected = true;
