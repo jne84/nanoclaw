@@ -147,6 +147,13 @@ function buildVolumeMounts(
     '.claude',
   );
   fs.mkdirSync(groupSessionsDir, { recursive: true });
+  // The container runs as uid 1000 (node) and Claude Code writes to subdirs
+  // of this mount (session-env, etc). Host creates it as root, so chmod to 777.
+  try {
+    fs.chmodSync(groupSessionsDir, 0o777);
+  } catch {
+    /* best effort */
+  }
   const settingsFile = path.join(groupSessionsDir, 'settings.json');
   if (!fs.existsSync(settingsFile)) {
     fs.writeFileSync(
