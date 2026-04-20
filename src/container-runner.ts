@@ -222,6 +222,21 @@ function buildVolumeMounts(
     });
   }
 
+  // Spotify credentials directory (for Spotify MCP inside the container)
+  const spotifyMcpDir = path.join(homeDir, '.spotify-mcp');
+  if (fs.existsSync(spotifyMcpDir)) {
+    try {
+      fs.chmodSync(spotifyMcpDir, 0o755);
+    } catch {
+      /* best effort */
+    }
+    mounts.push({
+      hostPath: spotifyMcpDir,
+      containerPath: '/home/node/.spotify-mcp',
+      readonly: false, // MCP writes refreshed tokens back to spotify-config.json
+    });
+  }
+
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC
   const groupIpcDir = resolveGroupIpcPath(group.folder);

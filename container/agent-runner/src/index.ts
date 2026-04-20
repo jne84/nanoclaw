@@ -537,6 +537,7 @@ async function runQuery(
         'mcp__gmail__*',
         'mcp__calendar__*',
         'mcp__tasks__*',
+        'mcp__spotify__*',
         'mcp__atlassian__*',
       ],
       env: sdkEnv,
@@ -564,6 +565,10 @@ async function runQuery(
         tasks: {
           command: 'node',
           args: [path.join(path.dirname(mcpServerPath), 'tasks-mcp-stdio.js')],
+        },
+        spotify: {
+          command: 'node',
+          args: ['/opt/spotify-mcp-server/build/index.js'],
         },
         atlassian: {
           command: 'mcp-atlassian',

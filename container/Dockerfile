@@ -39,6 +39,17 @@ RUN pip3 install --break-system-packages mcp-atlassian
 # Install agent-browser, playwright-cli, and claude-code globally
 RUN npm install -g agent-browser @playwright/cli @anthropic-ai/claude-code
 
+# Vendor marcelmarais/spotify-mcp-server into the image (no npm package exists).
+# Config comes from a bind mount at /home/node/.spotify-mcp/spotify-config.json — symlink
+# the server's expected location to that path so it sees the host-managed config.
+RUN git clone --depth 1 https://github.com/marcelmarais/spotify-mcp-server.git /opt/spotify-mcp-server \
+    && cd /opt/spotify-mcp-server \
+    && npm install \
+    && npm run build \
+    && rm -f spotify-config.json \
+    && ln -s /home/node/.spotify-mcp/spotify-config.json spotify-config.json \
+    && chown -R node:node /opt/spotify-mcp-server
+
 # Create app directory
 WORKDIR /app
 
