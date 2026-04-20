@@ -536,6 +536,7 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__gmail__*',
         'mcp__calendar__*',
+        'mcp__tasks__*',
         'mcp__atlassian__*',
       ],
       env: sdkEnv,
@@ -559,6 +560,10 @@ async function runQuery(
         calendar: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-calendar-autoauth-mcp'],
+        },
+        tasks: {
+          command: 'node',
+          args: [path.join(path.dirname(mcpServerPath), 'tasks-mcp-stdio.js')],
         },
         atlassian: {
           command: 'mcp-atlassian',

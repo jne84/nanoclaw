@@ -206,6 +206,16 @@ function buildVolumeMounts(
     });
   }
 
+  // Google Tasks credentials directory (for Tasks MCP inside the container)
+  const tasksMcpDir = path.join(homeDir, '.tasks-mcp');
+  if (fs.existsSync(tasksMcpDir)) {
+    mounts.push({
+      hostPath: tasksMcpDir,
+      containerPath: '/home/node/.tasks-mcp',
+      readonly: false, // MCP refreshes access tokens and writes them back
+    });
+  }
+
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC
   const groupIpcDir = resolveGroupIpcPath(group.folder);
