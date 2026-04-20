@@ -209,6 +209,12 @@ function buildVolumeMounts(
   // Google Tasks credentials directory (for Tasks MCP inside the container)
   const tasksMcpDir = path.join(homeDir, '.tasks-mcp');
   if (fs.existsSync(tasksMcpDir)) {
+    // Container runs as uid 1000 — dir must be traversable
+    try {
+      fs.chmodSync(tasksMcpDir, 0o755);
+    } catch {
+      /* best effort */
+    }
     mounts.push({
       hostPath: tasksMcpDir,
       containerPath: '/home/node/.tasks-mcp',
