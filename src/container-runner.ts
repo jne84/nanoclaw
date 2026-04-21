@@ -227,6 +227,13 @@ function buildVolumeMounts(
   if (fs.existsSync(spotifyMcpDir)) {
     try {
       fs.chmodSync(spotifyMcpDir, 0o755);
+      // Config file must be writable by container uid 1000 — the MCP server
+      // refreshes the access token and writes it back. Without this, refresh
+      // surfaces as "please re-auth" even though the refresh itself worked.
+      const spotifyConfigFile = path.join(spotifyMcpDir, 'spotify-config.json');
+      if (fs.existsSync(spotifyConfigFile)) {
+        fs.chmodSync(spotifyConfigFile, 0o666);
+      }
     } catch {
       /* best effort */
     }
